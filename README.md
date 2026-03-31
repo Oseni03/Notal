@@ -1,10 +1,10 @@
-# NoteApp
+# Notal
 
 A multi-tenant SaaS notes application built with Next.js, demonstrating enterprise-grade multi-tenancy, authentication, and subscription management patterns.
 
 ## Overview
 
-NoteApp is a production-ready multi-tenant application where multiple organizations (tenants) can securely manage their users and notes with complete data isolation. Built as a Next.js SaaS boilerplate with role-based access control and subscription feature gating.
+Notal is a production-ready multi-tenant application where multiple organizations (tenants) can securely manage their users and notes with complete data isolation. Built as a Next.js SaaS boilerplate with role-based access control and subscription feature gating.
 
 ---
 
@@ -25,6 +25,12 @@ NoteApp is a production-ready multi-tenant application where multiple organizati
 - **Admin Controls** - Invite users and upgrade subscriptions
 - **Usage Tracking** - Monitor notes and user limits per organization
 - **API Access** - RESTful API with tenant isolation
+
+### Advanced Enterprise Features (Upcoming)
+
+- **Soft Deletes & Trash** - Move notes to Trash for 30 days before permanent auto-purge
+- **Activity Logs / Audit Trails** - Detailed history of who edited what and when for every note
+- **Version History** - Full version snapshots with the ability to revert to any point in time
 
 ---
 
@@ -57,7 +63,7 @@ NoteApp is a production-ready multi-tenant application where multiple organizati
 
 ```bash
 git clone <repository-url>
-cd noteapp
+cd notal
 ```
 
 2. Install dependencies:
@@ -114,7 +120,7 @@ Visit `http://localhost:3000` to access the application.
 ## 📂 Project Structure
 
 ```
-noteapp/
+notal/
 ├── prisma/
 │   └── schema.prisma         # Database schema
 ├── public/                   # Static assets

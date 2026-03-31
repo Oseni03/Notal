@@ -98,10 +98,10 @@ const AuthContent = ({ className, ...props }: React.ComponentProps<"div">) => {
 								<div className="flex size-8 items-center justify-center rounded-md">
 									<GalleryVerticalEnd className="size-6" />
 								</div>
-								<span className="sr-only">Noteapp</span>
+								<span className="sr-only">Notal</span>
 							</Link>
 							<h1 className="text-xl font-bold">
-								Welcome to Noteapp.
+								Welcome to the future of thought.
 							</h1>
 							{isLogin ? (
 								<div className="text-center text-sm">
@@ -149,7 +149,7 @@ const AuthContent = ({ className, ...props }: React.ComponentProps<"div">) => {
 								className="w-full"
 								disabled={isLoading}
 							>
-								{isLogin ? "Send Magic Link" : "Sign up"}
+								{isLogin ? "Continue with Magic Link" : "Create your account"}
 								{isLoading && (
 									<Loader2 className="ml-2 h-4 w-4 animate-spin" />
 								)}

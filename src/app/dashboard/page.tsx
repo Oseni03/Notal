@@ -224,11 +224,10 @@ const Page = () => {
 			<div className="flex items-center justify-between">
 				<div>
 					<h1 className="text-2xl font-bold text-foreground">
-						Notes
+						Knowledge Base
 					</h1>
 					<p className="text-muted-foreground">
-						{tenantNotes.length} of {subscription?.maxNotes} notes
-						used
+						Storage: {tenantNotes.length} of {subscription?.maxNotes >= 10000 ? "∞" : subscription?.maxNotes} notes
 					</p>
 				</div>
 				<Button
@@ -245,7 +244,7 @@ const Page = () => {
 			<div className="relative">
 				<Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
 				<Input
-					placeholder="Search notes..."
+					placeholder="Filter your insights..."
 					value={searchTerm}
 					onChange={(e) => setSearchTerm(e.target.value)}
 					className="pl-10"
@@ -341,8 +340,8 @@ const Page = () => {
 				<div className="text-center py-12">
 					<p className="text-muted-foreground">
 						{searchTerm
-							? "No notes found matching your search."
-							: "No notes yet. Create your first note!"}
+							? "No insights match your search. Try a different query."
+							: "Your library is empty. Capture your first idea."}
 					</p>
 				</div>
 			)}
@@ -366,7 +365,7 @@ const Page = () => {
 				<DialogContent className="sm:max-w-[500px]">
 					<DialogHeader>
 						<DialogTitle>
-							{editingNote ? "Edit Note" : "Create New Note"}
+							{editingNote ? "Refine Entry" : "New Entry"}
 						</DialogTitle>
 					</DialogHeader>
 					<div className="space-y-4">
@@ -395,7 +394,7 @@ const Page = () => {
 										content: e.target.value,
 									})
 								}
-								placeholder="Write your note content..."
+								placeholder="Compose your next big idea..."
 								rows={6}
 							/>
 						</div>

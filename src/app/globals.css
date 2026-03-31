@@ -41,7 +41,14 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
+
+  /* Premium Redesign Tokens */
+  --accent-lavender: oklch(0.7 0.12 285);
+  --accent-lavender-soft: oklch(0.9 0.05 285);
+  --glass-bg: rgba(255, 255, 255, 0.4);
+  --glass-border: rgba(255, 255, 255, 0.2);
 }
+
 
 :root {
   --radius: 0.625rem;
