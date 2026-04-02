@@ -13,6 +13,7 @@ import { ArrowLeft, Save, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { authClient } from "@/lib/auth-client";
 import { useNoteStore } from "@/zustand/providers/notes-store-provider";
+import { useOrganizationStore } from "@/zustand/providers/organization-store-provider";
 import { Note } from "@/types";
 
 // Dynamically import BlockNote to avoid SSR issues
@@ -103,7 +104,7 @@ export default function BaseEditor({
 		.map((t) => t.trim())
 		.filter(Boolean);
 
-	const handleSave = async () => {
+	const handleSave = useCallback(async () => {
 		if (!session?.user || !activeOrganization) {
 			toast.error("You must be logged in to save notes.");
 			return;
@@ -139,9 +140,6 @@ export default function BaseEditor({
 				});
 				toast.success("Note saved successfully!");
 			}
-
-			router.push("/dashboard");
-			router.refresh();
 		} catch (err: unknown) {
 			const msg =
 				err instanceof Error
@@ -151,7 +149,33 @@ export default function BaseEditor({
 		} finally {
 			setIsSaving(false);
 		}
-	};
+	}, [
+		addNote,
+		activeOrganization,
+		note,
+		noteTitle,
+		isPublic,
+		parsedTags,
+		session,
+		setIsSaving,
+		updateNote,
+		blocks,
+	]);
+
+	useEffect(() => {
+		const onKeyDown = (event: KeyboardEvent) => {
+			if (
+				(event.ctrlKey || event.metaKey) &&
+				event.key.toLowerCase() === "s"
+			) {
+				event.preventDefault();
+				handleSave();
+			}
+		};
+
+		window.addEventListener("keydown", onKeyDown);
+		return () => window.removeEventListener("keydown", onKeyDown);
+	}, [handleSave]);
 
 	return (
 		<div className="flex flex-col h-full min-h-screen bg-background">
