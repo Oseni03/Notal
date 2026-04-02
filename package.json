@@ -12,6 +12,9 @@
 		"prisma:generate": "prisma generate"
 	},
 	"dependencies": {
+		"@blocknote/core": "^0.47.3",
+		"@blocknote/mantine": "^0.47.3",
+		"@blocknote/react": "^0.47.3",
 		"@hookform/resolvers": "^5.2.2",
 		"@polar-sh/better-auth": "^1.1.4",
 		"@polar-sh/sdk": "^0.34.17",

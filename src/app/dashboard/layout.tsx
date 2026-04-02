@@ -78,9 +78,14 @@ export default function Page({
 		updateSubscription,
 	]);
 
-	if (!session?.user.id) {
-		router.push("/login"); // Redirect to login if not authenticated
-		return null; // Render nothing while redirecting
+	useEffect(() => {
+		if (session !== undefined && !session?.user?.id) {
+			router.push("/login");
+		}
+	}, [session, router]);
+
+	if (!session?.user?.id) {
+		return null; // Wait for auth resolution or redirect
 	}
 
 	return (

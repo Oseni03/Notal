@@ -1,19 +1,11 @@
 "use client";
 
 import React, { useState, useMemo, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import {
-	Dialog,
-	DialogContent,
-	DialogHeader,
-	DialogTitle,
-} from "@/components/ui/dialog";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import { Plus, Search, Edit, Trash2, Tag, Calendar, User } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
@@ -22,20 +14,13 @@ import { useOrganizationStore } from "@/zustand/providers/organization-store-pro
 import { authClient } from "@/lib/auth-client";
 
 const Page = () => {
+	const router = useRouter();
 	const { activeOrganization, subscription } = useOrganizationStore(
-		(state) => state
+		(state) => state,
 	);
 	const { data: session } = authClient.useSession();
 	const [notes, setNotes] = useState<Note[]>([]);
 	const [searchTerm, setSearchTerm] = useState("");
-	const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-	const [editingNote, setEditingNote] = useState<Note | null>(null);
-	const [newNote, setNewNote] = useState({
-		title: "",
-		content: "",
-		tags: "",
-		isPublic: true,
-	});
 
 	const user = session?.user;
 
@@ -49,8 +34,8 @@ const Page = () => {
 				note.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
 				note.content.toLowerCase().includes(searchTerm.toLowerCase()) ||
 				note.tags.some((tag) =>
-					tag.toLowerCase().includes(searchTerm.toLowerCase())
-				)
+					tag.toLowerCase().includes(searchTerm.toLowerCase()),
+				),
 		);
 	}, [tenantNotes, searchTerm]);
 
@@ -58,9 +43,7 @@ const Page = () => {
 		const getNotes = async () => {
 			try {
 				const resp = await fetch("/api/notes");
-				if (!resp.ok) {
-					throw new Error("Error getting notes");
-				}
+				if (!resp.ok) throw new Error("Error getting notes");
 				const { notes } = await resp.json();
 				setNotes(notes);
 			} catch (error: unknown) {
@@ -72,134 +55,23 @@ const Page = () => {
 		getNotes();
 	}, []);
 
-	const handleCreateNote = async () => {
-		if (!user || !activeOrganization) return;
-
-		try {
-			toast.loading("Creating note...");
-			const response = await fetch("/api/notes", {
-				method: "POST",
-				headers: {
-					"Content-Type": "application/json",
-				},
-				body: JSON.stringify({
-					title: newNote.title || "Untitled Note",
-					content: newNote.content,
-					authorId: user.id,
-					tenantId: activeOrganization.id,
-					tags: newNote.tags
-						? newNote.tags.split(",").map((tag) => tag.trim())
-						: [],
-					isPublic: newNote.isPublic,
-				}),
-			});
-
-			if (!response.ok) {
-				throw new Error(
-					`Failed to create note: ${response.statusText}`
-				);
-			}
-
-			const { note: createdNote, message } = await response.json();
-
-			setNotes((prev) => [...prev, createdNote]);
-
-			// Reset form and close modal
-			setNewNote({ title: "", content: "", tags: "", isPublic: true });
-			setIsCreateModalOpen(false);
-
-			toast.dismiss();
-			toast.success(message || " Note created successful");
-			console.log("Note created successfully:", createdNote);
-		} catch (error) {
-			console.error("Error creating note:", error);
-			toast.dismiss();
-			toast.error("Error creating note");
-		}
-	};
-
-	const handleEditNote = (note: Note) => {
-		setEditingNote(note);
-		setNewNote({
-			title: note.title,
-			content: note.content,
-			tags: note.tags.join(", "),
-			isPublic: note.isPublic,
-		});
-	};
-
-	const handleUpdateNote = async () => {
-		if (!user || !activeOrganization || !editingNote) return;
-
-		try {
-			toast.loading("Updating note...");
-			const response = await fetch(`/api/notes/${editingNote.id}`, {
-				method: "PUT",
-				headers: {
-					"Content-Type": "application/json",
-				},
-				body: JSON.stringify({
-					title: newNote.title || "Untitled Note",
-					content: newNote.content,
-					authorId: user.id,
-					tenantId: activeOrganization.id,
-					tags: newNote.tags
-						? newNote.tags.split(",").map((tag) => tag.trim())
-						: [],
-					isPublic: newNote.isPublic,
-				}),
-			});
-
-			if (!response.ok) {
-				throw new Error(
-					`Failed to update note: ${response.statusText}`
-				);
-			}
-
-			const { note: updatedNote, message } = await response.json();
-
-			// Reset state
-			setEditingNote(null);
-			setNewNote({ title: "", content: "", tags: "", isPublic: true });
-
-			// Optional: Update local state if you're managing it
-			setNotes((prevNotes) =>
-				prevNotes.map((note) =>
-					note.id === updatedNote.id ? updatedNote : note
-				)
-			);
-
-			toast.dismiss();
-			toast.success(message || "Note updated successful");
-			console.log("Note updated successfully:", updatedNote);
-		} catch (error) {
-			console.error("Error updating note:", error);
-			toast.dismiss();
-			toast.error("Error updating note");
-		}
-	};
-
 	const handleDeleteNote = async (noteId: string) => {
 		try {
 			toast.loading("Deleting note...");
 			const response = await fetch(`/api/notes/${noteId}`, {
 				method: "DELETE",
-				headers: {
-					"Content-Type": "application/json",
-				},
+				headers: { "Content-Type": "application/json" },
 			});
 
 			if (!response.ok) {
 				throw new Error(
-					`Failed to update note: ${response.statusText}`
+					`Failed to delete note: ${response.statusText}`,
 				);
 			}
 
 			const { message } = await response.json();
-
-			// Optional: Update local state if you're managing it
 			setNotes((prevNotes) =>
-				prevNotes.filter((note) => note.id !== noteId)
+				prevNotes.filter((note) => note.id !== noteId),
 			);
 			toast.dismiss();
 			toast.success(message || "Note deleted successfully");
@@ -218,6 +90,28 @@ const Page = () => {
 		return tenantNotes.length >= (subscription?.maxNotes || 50);
 	};
 
+	// Try to extract a plain-text preview from BlockNote JSON content
+	const getContentPreview = (content: string): string => {
+		try {
+			const blocks = JSON.parse(content);
+			if (!Array.isArray(blocks)) return content;
+			const texts: string[] = [];
+			for (const block of blocks) {
+				if (Array.isArray(block.content)) {
+					for (const inline of block.content) {
+						if (inline.type === "text" && inline.text) {
+							texts.push(inline.text);
+						}
+					}
+				}
+				if (texts.join(" ").length > 160) break;
+			}
+			return texts.join(" ") || "No content yet.";
+		} catch {
+			return content;
+		}
+	};
+
 	return (
 		<div className="p-6 space-y-6">
 			{/* Header */}
@@ -227,11 +121,15 @@ const Page = () => {
 						Knowledge Base
 					</h1>
 					<p className="text-muted-foreground">
-						Storage: {tenantNotes.length} of {subscription?.maxNotes >= 10000 ? "∞" : subscription?.maxNotes} notes
+						Storage: {tenantNotes.length} of{" "}
+						{(subscription?.maxNotes ?? 50) >= 10000
+							? "∞"
+							: (subscription?.maxNotes ?? 50)}{" "}
+						notes
 					</p>
 				</div>
 				<Button
-					onClick={() => setIsCreateModalOpen(true)}
+					onClick={() => router.push("/dashboard/notes/new")}
 					disabled={hasReachedLimit()}
 					className="gap-2"
 				>
@@ -256,7 +154,11 @@ const Page = () => {
 				{filteredNotes.map((note) => (
 					<Card
 						key={note.id}
-						className="hover:shadow-md transition-shadow"
+						className="hover:shadow-md transition-shadow group cursor-pointer"
+						onClick={() =>
+							canEditNote(note) &&
+							router.push(`/dashboard/notes/${note.id}/edit`)
+						}
 					>
 						<CardHeader className="pb-3">
 							<div className="flex items-start justify-between">
@@ -264,11 +166,16 @@ const Page = () => {
 									{note.title}
 								</h3>
 								{canEditNote(note) && (
-									<div className="flex gap-1 ml-2">
+									<div className="flex gap-1 ml-2 opacity-0 group-hover:opacity-100 transition-opacity">
 										<Button
 											variant="ghost"
 											size="sm"
-											onClick={() => handleEditNote(note)}
+											onClick={(e) => {
+												e.stopPropagation();
+												router.push(
+													`/dashboard/notes/${note.id}/edit`,
+												);
+											}}
 											className="h-8 w-8 p-0"
 										>
 											<Edit className="w-3 h-3" />
@@ -276,9 +183,10 @@ const Page = () => {
 										<Button
 											variant="ghost"
 											size="sm"
-											onClick={() =>
-												handleDeleteNote(note.id)
-											}
+											onClick={(e) => {
+												e.stopPropagation();
+												handleDeleteNote(note.id);
+											}}
 											className="h-8 w-8 p-0 text-destructive hover:text-destructive"
 										>
 											<Trash2 className="w-3 h-3" />
@@ -289,7 +197,7 @@ const Page = () => {
 						</CardHeader>
 						<CardContent className="space-y-4">
 							<p className="text-muted-foreground line-clamp-3 text-sm">
-								{note.content}
+								{getContentPreview(note.content)}
 							</p>
 
 							{note.tags.length > 0 && (
@@ -343,119 +251,18 @@ const Page = () => {
 							? "No insights match your search. Try a different query."
 							: "Your library is empty. Capture your first idea."}
 					</p>
+					{!searchTerm && (
+						<Button
+							onClick={() => router.push("/dashboard/notes/new")}
+							disabled={hasReachedLimit()}
+							className="mt-4 gap-2"
+						>
+							<Plus className="w-4 h-4" />
+							Create your first note
+						</Button>
+					)}
 				</div>
 			)}
-
-			{/* Create/Edit Modal */}
-			<Dialog
-				open={isCreateModalOpen || !!editingNote}
-				onOpenChange={(open) => {
-					if (!open) {
-						setIsCreateModalOpen(false);
-						setEditingNote(null);
-						setNewNote({
-							title: "",
-							content: "",
-							tags: "",
-							isPublic: true,
-						});
-					}
-				}}
-			>
-				<DialogContent className="sm:max-w-[500px]">
-					<DialogHeader>
-						<DialogTitle>
-							{editingNote ? "Refine Entry" : "New Entry"}
-						</DialogTitle>
-					</DialogHeader>
-					<div className="space-y-4">
-						<div>
-							<Label htmlFor="title">Title</Label>
-							<Input
-								id="title"
-								value={newNote.title}
-								onChange={(e) =>
-									setNewNote({
-										...newNote,
-										title: e.target.value,
-									})
-								}
-								placeholder="Enter note title..."
-							/>
-						</div>
-						<div>
-							<Label htmlFor="content">Content</Label>
-							<Textarea
-								id="content"
-								value={newNote.content}
-								onChange={(e) =>
-									setNewNote({
-										...newNote,
-										content: e.target.value,
-									})
-								}
-								placeholder="Compose your next big idea..."
-								rows={6}
-							/>
-						</div>
-						<div>
-							<Label htmlFor="tags">Tags (comma-separated)</Label>
-							<Input
-								id="tags"
-								value={newNote.tags}
-								onChange={(e) =>
-									setNewNote({
-										...newNote,
-										tags: e.target.value,
-									})
-								}
-								placeholder="tag1, tag2, tag3"
-							/>
-						</div>
-						<div className="flex items-center space-x-2">
-							<Switch
-								id="public"
-								checked={newNote.isPublic}
-								onCheckedChange={(checked) =>
-									setNewNote({
-										...newNote,
-										isPublic: checked,
-									})
-								}
-							/>
-							<Label htmlFor="public">
-								Make this note public
-							</Label>
-						</div>
-						<div className="flex justify-end gap-2">
-							<Button
-								variant="outline"
-								onClick={() => {
-									setIsCreateModalOpen(false);
-									setEditingNote(null);
-									setNewNote({
-										title: "",
-										content: "",
-										tags: "",
-										isPublic: true,
-									});
-								}}
-							>
-								Cancel
-							</Button>
-							<Button
-								onClick={
-									editingNote
-										? handleUpdateNote
-										: handleCreateNote
-								}
-							>
-								{editingNote ? "Update" : "Create"}
-							</Button>
-						</div>
-					</div>
-				</DialogContent>
-			</Dialog>
 		</div>
 	);
 };
