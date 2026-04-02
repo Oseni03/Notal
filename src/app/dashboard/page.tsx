@@ -11,6 +11,7 @@ import { format } from "date-fns";
 import { toast } from "sonner";
 import { Note } from "@/types";
 import { useOrganizationStore } from "@/zustand/providers/organization-store-provider";
+import { useNoteStore } from "@/zustand/providers/notes-store-provider";
 import { authClient } from "@/lib/auth-client";
 
 const Page = () => {
@@ -18,8 +19,10 @@ const Page = () => {
 	const { activeOrganization, subscription } = useOrganizationStore(
 		(state) => state,
 	);
+	const { notes, isLoading, error, setNotes, deleteNote } = useNoteStore(
+		(state) => state,
+	);
 	const { data: session } = authClient.useSession();
-	const [notes, setNotes] = useState<Note[]>([]);
 	const [searchTerm, setSearchTerm] = useState("");
 
 	const user = session?.user;
@@ -40,44 +43,17 @@ const Page = () => {
 	}, [tenantNotes, searchTerm]);
 
 	useEffect(() => {
-		const getNotes = async () => {
-			try {
-				const resp = await fetch("/api/notes");
-				if (!resp.ok) throw new Error("Error getting notes");
-				const { notes } = await resp.json();
-				setNotes(notes);
-			} catch (error: unknown) {
-				console.log("Error getting notes", error);
-				toast.info("Error getting notes");
-			}
-		};
-
-		getNotes();
-	}, []);
+		if (activeOrganization) {
+			setNotes();
+		}
+	}, [activeOrganization, setNotes]);
 
 	const handleDeleteNote = async (noteId: string) => {
 		try {
-			toast.loading("Deleting note...");
-			const response = await fetch(`/api/notes/${noteId}`, {
-				method: "DELETE",
-				headers: { "Content-Type": "application/json" },
-			});
-
-			if (!response.ok) {
-				throw new Error(
-					`Failed to delete note: ${response.statusText}`,
-				);
-			}
-
-			const { message } = await response.json();
-			setNotes((prevNotes) =>
-				prevNotes.filter((note) => note.id !== noteId),
-			);
-			toast.dismiss();
-			toast.success(message || "Note deleted successfully");
+			await deleteNote(noteId);
+			toast.success("Note deleted successfully");
 		} catch (error) {
 			console.error("Error deleting note:", error);
-			toast.dismiss();
 			toast.error("Error deleting note");
 		}
 	};
@@ -111,6 +87,46 @@ const Page = () => {
 			return content;
 		}
 	};
+
+	// Show loading state
+	if (isLoading) {
+		return (
+			<div className="p-6 space-y-6">
+				<div className="flex items-center justify-between">
+					<div>
+						<div className="h-8 w-48 animate-pulse rounded-md bg-muted mb-2" />
+						<div className="h-4 w-32 animate-pulse rounded-md bg-muted" />
+					</div>
+					<div className="h-10 w-24 animate-pulse rounded-md bg-muted" />
+				</div>
+				<div className="h-10 w-full animate-pulse rounded-md bg-muted" />
+				<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+					{[...Array(6)].map((_, i) => (
+						<div
+							key={i}
+							className="h-64 animate-pulse rounded-lg bg-muted"
+						/>
+					))}
+				</div>
+			</div>
+		);
+	}
+
+	// Show error state
+	if (error) {
+		return (
+			<div className="p-6 space-y-6">
+				<div className="text-center py-12">
+					<p className="text-destructive mb-4">
+						Error loading notes: {error}
+					</p>
+					<Button onClick={() => setNotes()} variant="outline">
+						Try Again
+					</Button>
+				</div>
+			</div>
+		);
+	}
 
 	return (
 		<div className="p-6 space-y-6">

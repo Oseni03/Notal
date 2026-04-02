@@ -4,6 +4,7 @@ import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/components/theme/theme-provider";
 import { OrganizationStoreProvider } from "@/zustand/providers/organization-store-provider";
+import { NoteStoreProvider } from "@/zustand/providers/notes-store-provider";
 
 const geistSans = Geist({
 	variable: "--font-geist-sans",
@@ -17,7 +18,8 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
 	title: "Notal",
-	description: "The enterprise-ready multi-tenant note-taking platform with soft deletes, activity logs, and version history.",
+	description:
+		"The enterprise-ready multi-tenant note-taking platform with soft deletes, activity logs, and version history.",
 };
 
 export default function RootLayout({
@@ -32,7 +34,7 @@ export default function RootLayout({
 			>
 				<ThemeProvider>
 					<OrganizationStoreProvider>
-						{children}
+						<NoteStoreProvider>{children}</NoteStoreProvider>
 					</OrganizationStoreProvider>
 					<Toaster />
 				</ThemeProvider>
