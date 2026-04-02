@@ -33,7 +33,7 @@ export const auth = betterAuth({
 		},
 	},
 	emailAndPassword: {
-		enabled: false,
+		enabled: true,
 		requireEmailVerification: false,
 	},
 	socialProviders: {
@@ -63,7 +63,7 @@ export const auth = betterAuth({
 						{
 							name: user.email.split("@")[0],
 							slug: user.email.split("@")[0].toLowerCase(),
-						}
+						},
 					);
 
 					if (success && data) {
@@ -76,7 +76,7 @@ export const auth = betterAuth({
 			create: {
 				before: async (session) => {
 					const organization = await getActiveOrganization(
-						session.userId
+						session.userId,
 					);
 					return {
 						data: {

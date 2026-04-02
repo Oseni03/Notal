@@ -25,6 +25,7 @@ import { Skeleton } from "../ui/skeleton";
 
 const formSchema = z.object({
 	email: z.email("Please enter a valid email address"),
+	password: z.string().min(6, "Password must be at least 6 characters"),
 });
 
 const AuthContent = ({ className, ...props }: React.ComponentProps<"div">) => {
@@ -39,6 +40,7 @@ const AuthContent = ({ className, ...props }: React.ComponentProps<"div">) => {
 		resolver: zodResolver(formSchema),
 		defaultValues: {
 			email: "",
+			password: "",
 		},
 	});
 
@@ -66,18 +68,27 @@ const AuthContent = ({ className, ...props }: React.ComponentProps<"div">) => {
 		try {
 			setIsLoading(true);
 
-			await authClient.signIn.magicLink({
-				email: values.email,
-				// callbackURL: "/dashboard",
-				newUserCallbackURL: "/dashboard",
-			});
-			toast.success("Magic link sent! Check your email.");
+			if (isLogin) {
+				await authClient.signIn.email({
+					email: values.email,
+					password: values.password,
+				});
+				toast.success("Signed in successfully!");
+			} else {
+				await authClient.signUp.email({
+					email: values.email,
+					password: values.password,
+					name: values.email.split("@")[0],
+				});
+				toast.success("Account created successfully!");
+			}
+
 			const returnUrl = searchParams.get("callbackUrl") || "/dashboard";
 			// After successful login, redirect to the return URL
 			router.push(returnUrl);
 		} catch (error) {
-			toast.error("Failed to send magic link");
-			console.error("Magic link sign-in error:", error);
+			toast.error(isLogin ? "Failed to sign in" : "Failed to sign up");
+			console.error("Auth error:", error);
 		} finally {
 			setIsLoading(false);
 		}
@@ -144,12 +155,30 @@ const AuthContent = ({ className, ...props }: React.ComponentProps<"div">) => {
 									</FormItem>
 								)}
 							/>
+							<FormField
+								control={form.control}
+								name="password"
+								render={({ field }) => (
+									<FormItem>
+										<FormLabel>Password</FormLabel>
+										<FormControl>
+											<Input
+												type="password"
+												placeholder="Enter your password"
+												{...field}
+												className="border-gray-300 bg-white dark:border-gray-600 dark:bg-gray-800"
+											/>
+										</FormControl>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
 							<Button
 								type="submit"
 								className="w-full"
 								disabled={isLoading}
 							>
-								{isLogin ? "Continue with Magic Link" : "Create your account"}
+								{isLogin ? "Sign in" : "Sign up"}
 								{isLoading && (
 									<Loader2 className="ml-2 h-4 w-4 animate-spin" />
 								)}

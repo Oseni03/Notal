@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { User } from "lucide-react";
+import { User, Lock } from "lucide-react";
 import {
 	Card,
 	CardContent,
@@ -12,6 +12,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { authClient } from "@/lib/auth-client";
 import { ProfileForm } from "@/components/forms/profile-form";
+import { SetPasswordForm } from "@/components/forms/set-password-form";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function Page() {
@@ -180,6 +181,22 @@ export default function Page() {
 							</div>
 						</>
 					)}
+				</CardContent>
+			</Card>
+
+			<Card>
+				<CardHeader>
+					<CardTitle className="flex items-center gap-2">
+						<Lock className="h-4 w-4" />
+						Password Settings
+					</CardTitle>
+					<CardDescription>
+						Set or change your password for email and password
+						login.
+					</CardDescription>
+				</CardHeader>
+				<CardContent>
+					<SetPasswordForm />
 				</CardContent>
 			</Card>
 		</div>

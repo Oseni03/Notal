@@ -44,12 +44,12 @@ export default function Page({
 				const isAdmin = !!data?.members?.find(
 					(member) =>
 						member.userId == session?.user?.id &&
-						member.role == "admin"
+						member.role == "admin",
 				);
 				setOrganizationData(
 					data as Organization,
 					(data?.members as Member[]) || [],
-					data?.invitations || []
+					data?.invitations || [],
 				);
 				setAdmin(isAdmin);
 
@@ -58,7 +58,7 @@ export default function Page({
 				}
 			} else {
 				setActiveOrganization(
-					session?.activeOrganizationId || organizations![0].id
+					session?.activeOrganizationId || organizations![0].id,
 				);
 			}
 
