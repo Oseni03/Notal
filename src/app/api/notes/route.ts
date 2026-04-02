@@ -2,6 +2,7 @@ import { type NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getOrganizationById } from "@/server/organizations";
 import { getSession, getUserIdFromSession } from "@/lib/auth-utils";
+import { createActivityLog } from "@/server/activity-logs";
 
 // GET /api/notes - List all notes for the authenticated user's organization
 export async function GET(request: NextRequest) {
@@ -14,7 +15,7 @@ export async function GET(request: NextRequest) {
 		if (!currentUser) {
 			return NextResponse.json(
 				{ error: "Not authorized" },
-				{ status: 401 }
+				{ status: 401 },
 			);
 		}
 
@@ -32,11 +33,24 @@ export async function GET(request: NextRequest) {
 							name: true,
 						},
 					},
+					activityLogs: {
+						orderBy: { createdAt: "desc" },
+						take: 1,
+						include: {
+							user: {
+								select: { id: true, name: true, email: true },
+							},
+						},
+					},
 				},
 				orderBy: {
 					updatedAt: "desc",
 				},
 			});
+			notes = notes.map((note) => ({
+				...note,
+				lastActivity: note.activityLogs?.[0] ?? null,
+			}));
 		} else {
 			// Regular users can only view their own notes
 			notes = await prisma.note.findMany({
@@ -44,10 +58,32 @@ export async function GET(request: NextRequest) {
 					authorId: currentUser.id,
 					tenantId: session.activeOrganizationId,
 				},
+				include: {
+					author: {
+						select: {
+							id: true,
+							email: true,
+							name: true,
+						},
+					},
+					activityLogs: {
+						orderBy: { createdAt: "desc" },
+						take: 1,
+						include: {
+							user: {
+								select: { id: true, name: true, email: true },
+							},
+						},
+					},
+				},
 				orderBy: {
 					updatedAt: "desc",
 				},
 			});
+			notes = notes.map((note) => ({
+				...note,
+				lastActivity: note.activityLogs?.[0] ?? null,
+			}));
 		}
 
 		return NextResponse.json({
@@ -58,7 +94,7 @@ export async function GET(request: NextRequest) {
 		console.error("Get notes error:", error);
 		return NextResponse.json(
 			{ error: "Internal server error" },
-			{ status: 500 }
+			{ status: 500 },
 		);
 	}
 }
@@ -72,7 +108,7 @@ export async function POST(request: NextRequest) {
 		if (!title || !content) {
 			return NextResponse.json(
 				{ error: "Title and content are required" },
-				{ status: 400 }
+				{ status: 400 },
 			);
 		}
 
@@ -81,7 +117,7 @@ export async function POST(request: NextRequest) {
 		if (!authorId || !tenantId || !userId || userId !== authorId) {
 			return NextResponse.json(
 				{ error: "Not authorized" },
-				{ status: 401 }
+				{ status: 401 },
 			);
 		}
 
@@ -90,7 +126,7 @@ export async function POST(request: NextRequest) {
 		if (!activeOrganization) {
 			return NextResponse.json(
 				{ error: "Tenant not found" },
-				{ status: 404 }
+				{ status: 404 },
 			);
 		}
 
@@ -108,7 +144,7 @@ export async function POST(request: NextRequest) {
 						error: "Free plan limited to 3 notes. Upgrade to Pro for unlimited notes.",
 						message: "Upgrade to Pro",
 					},
-					{ status: 403 }
+					{ status: 403 },
 				);
 			}
 		}
@@ -135,18 +171,41 @@ export async function POST(request: NextRequest) {
 			},
 		});
 
+		const activityLog = await createActivityLog({
+			noteId: newNote.id,
+			organizationId: tenantId,
+			userId,
+			actionType: "Created",
+			ipAddress:
+				request.headers.get("x-forwarded-for") ||
+				request.headers.get("x-real-ip") ||
+				undefined,
+		});
+
 		return NextResponse.json(
 			{
-				note: newNote,
+				note: {
+					...newNote,
+					lastActivity: {
+						id: activityLog.id,
+						user: {
+							id: activityLog.userId,
+							name: newNote.author.name,
+							email: newNote.author.email,
+						},
+						actionType: activityLog.actionType,
+						createdAt: activityLog.createdAt,
+					},
+				},
 				message: "Note created successfully",
 			},
-			{ status: 201 }
+			{ status: 201 },
 		);
 	} catch (error) {
 		console.error("Create note error:", error);
 		return NextResponse.json(
 			{ error: "Internal server error" },
-			{ status: 500 }
+			{ status: 500 },
 		);
 	}
 }

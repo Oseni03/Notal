@@ -1,9 +1,15 @@
-import { Note } from "@/types";
+import { Note, ActivityLogWithDetails } from "@/types";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
 export type NoteState = {
 	notes: Note[];
+	activityLogs: ActivityLogWithDetails[];
+	activityLogsTotal: number;
+	activityLogsLimit: number;
+	activityLogsOffset: number;
+	activityLogsIsLoading: boolean;
+	activityLogsError: string | null;
 	isLoading: boolean;
 	error: string | null;
 };
@@ -29,12 +35,26 @@ type NoteActions = {
 		},
 	) => Promise<void>;
 	deleteNote: (noteId: string) => Promise<void>;
+	setActivityLogs: (logs: ActivityLogWithDetails[]) => void;
+	fetchActivityLogs: (opts?: {
+		limit?: number;
+		offset?: number;
+		actionType?: string;
+		userId?: string;
+		noteId?: string;
+	}) => Promise<void>;
 };
 
 export type NoteStore = NoteState & NoteActions;
 
 export const defaultInitState: NoteState = {
 	notes: [],
+	activityLogs: [],
+	activityLogsTotal: 0,
+	activityLogsLimit: 10,
+	activityLogsOffset: 0,
+	activityLogsIsLoading: false,
+	activityLogsError: null,
 	isLoading: false,
 	error: null,
 };
@@ -154,6 +174,64 @@ export const createNoteStore = (initState: NoteState = defaultInitState) => {
 						set({
 							error: (err as Error).message,
 							isLoading: false,
+						});
+					}
+				},
+				setActivityLogs: (logs: ActivityLogWithDetails[]) => {
+					set({ activityLogs: logs });
+				},
+				fetchActivityLogs: async (opts = {}) => {
+					set({
+						activityLogsIsLoading: true,
+						activityLogsError: null,
+					});
+					try {
+						const {
+							limit = 50,
+							offset = 0,
+							actionType,
+							userId,
+							noteId,
+						} = opts;
+
+						const params = new URLSearchParams({
+							limit: String(limit),
+							offset: String(offset),
+							...(actionType && { actionType }),
+							...(userId && { userId }),
+							...(noteId && { noteId }),
+						});
+
+						const res = await fetch(
+							`/api/activity-logs?${params.toString()}`,
+						);
+						if (!res.ok) {
+							if (res.status === 403) {
+								throw new Error(
+									"You don't have permission to view activity logs.",
+								);
+							}
+							const errorData = await res.json();
+							throw new Error(
+								errorData.error ||
+									"Failed to fetch activity logs",
+							);
+						}
+
+						const result = await res.json();
+						set({
+							activityLogs: result.logs,
+							activityLogsTotal: result.total,
+							activityLogsLimit: result.limit ?? limit,
+							activityLogsOffset: result.offset ?? offset,
+							activityLogsIsLoading: false,
+						});
+					} catch (err) {
+						set({
+							activityLogsError:
+								(err as Error).message ||
+								"Failed to fetch activity logs",
+							activityLogsIsLoading: false,
 						});
 					}
 				},

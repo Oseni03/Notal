@@ -19,16 +19,10 @@ export default function EditNotePage() {
 		const fetchNote = async () => {
 			if (!params.id) return;
 			try {
-				// First try to get from store
-				let existingNote = getNote(params.id);
-				if (!existingNote) {
-					// If not in store, fetch from API and update store
-					const res = await fetch(`/api/notes/${params.id}`);
-					if (!res.ok) throw new Error("Note not found");
-					const { note: fetchedNote } = await res.json();
-					existingNote = fetchedNote;
-				}
-				setNote(existingNote);
+				const res = await fetch(`/api/notes/${params.id}`);
+				if (!res.ok) throw new Error("Note not found");
+				const { note: fetchedNote } = await res.json();
+				setNote(fetchedNote);
 			} catch {
 				toast.error("Failed to load note.");
 				router.push("/dashboard");
@@ -38,7 +32,7 @@ export default function EditNotePage() {
 		};
 
 		fetchNote();
-	}, [params.id, router, getNote]);
+	}, [params.id, router]);
 
 	if (isLoading) {
 		return (

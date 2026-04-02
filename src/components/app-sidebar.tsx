@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { FileText, Settings, Settings2, User } from "lucide-react";
+import { FileText, Settings, Settings2, User, Activity } from "lucide-react";
 import { NavMain } from "@/components/nav-main";
 import { NavUser } from "@/components/nav-user";
 import { TeamSwitcher } from "@/components/team-switcher";
@@ -21,6 +21,12 @@ const dashboardItems = [
 		label: "Notes",
 		icon: FileText,
 		url: "/dashboard",
+	},
+	{
+		id: "activity",
+		label: "Activity Logs",
+		icon: Activity,
+		url: "/dashboard/activity-logs",
 	},
 	{
 		id: "settings",

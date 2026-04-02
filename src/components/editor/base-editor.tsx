@@ -3,6 +3,7 @@
 import dynamic from "next/dynamic";
 import { useState, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { formatDistanceToNow } from "date-fns";
 import { Block } from "@blocknote/core";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -103,6 +104,15 @@ export default function BaseEditor({
 		.split(",")
 		.map((t) => t.trim())
 		.filter(Boolean);
+
+	const lastActivity = note?.lastActivity;
+	const lastActivityText = lastActivity
+		? `Last ${lastActivity.actionType.toLowerCase()} by ${
+				lastActivity.user.name || lastActivity.user.email
+			} ${formatDistanceToNow(new Date(lastActivity.createdAt), {
+				addSuffix: true,
+			})}`
+		: "";
 
 	const handleSave = useCallback(async () => {
 		if (!session?.user || !activeOrganization) {
@@ -252,6 +262,14 @@ export default function BaseEditor({
 								{tag}
 							</Badge>
 						))}
+					</div>
+				)}
+
+				{lastActivity && (
+					<div className="flex items-center gap-2">
+						<Badge className="text-xs" variant="outline">
+							{lastActivityText}
+						</Badge>
 					</div>
 				)}
 

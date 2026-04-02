@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { withAuth } from "@/lib/middleware";
 import { prisma } from "@/lib/prisma";
+import { createActivityLog, getLastActivityForNote } from "@/server/activity-logs";
 
 // GET /api/notes/[id] - Get a specific note
 export async function GET(
@@ -45,7 +46,8 @@ export async function GET(
 				);
 			}
 
-			return NextResponse.json({ note });
+			const lastActivity = await getLastActivityForNote(note.id);
+			return NextResponse.json({ note: { ...note, lastActivity } });
 		} catch (error) {
 			console.error("Get note error:", error);
 			return NextResponse.json(
@@ -129,8 +131,43 @@ export async function PUT(
 				},
 			});
 
+			const activityLog = await createActivityLog({
+				noteId,
+				organizationId: currentUser.organizationId,
+				userId: currentUser.id,
+				actionType: "Edited",
+				ipAddress:
+					request.headers.get("x-forwarded-for") ||
+					request.headers.get("x-real-ip") ||
+					undefined,
+			});
+
 			return NextResponse.json({
-				note: updatedNote,
+				note: {
+					...updatedNote,
+					lastActivity: {
+						id: activityLog.id,
+						user: {
+							id: currentUser.id,
+							name: currentUser.name,
+							email: currentUser.email,
+						},
+						actionType: activityLog.actionType,
+						createdAt: activityLog.createdAt,
+					},
+				}
+					...updatedNote,
+					lastActivity: {
+						id: activityLog.id,
+						user: {
+							id: currentUser.id,
+							name: currentUser.name,
+							email: currentUser.email,
+						},
+						actionType: activityLog.actionType,
+						createdAt: activityLog.createdAt,
+					},
+				},
 				message: "Note updated successfully",
 			});
 		} catch (error) {
@@ -179,6 +216,17 @@ export async function DELETE(
 
 			await prisma.note.delete({
 				where: { id: noteId },
+			});
+
+			await createActivityLog({
+				noteId,
+				organizationId: currentUser.organizationId,
+				userId: currentUser.id,
+				actionType: "Deleted",
+				ipAddress:
+					request.headers.get("x-forwarded-for") ||
+					request.headers.get("x-real-ip") ||
+					undefined,
 			});
 
 			return NextResponse.json({

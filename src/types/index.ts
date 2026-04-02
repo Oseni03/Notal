@@ -46,6 +46,16 @@ export interface Note {
 	createdAt: Date;
 	updatedAt: Date;
 	author: User;
+	lastActivity?: {
+		id: string;
+		user: {
+			id: string;
+			name: string;
+			email: string;
+		};
+		actionType: string;
+		createdAt: Date;
+	};
 }
 
 export interface InvitationData {
@@ -59,28 +69,20 @@ export interface InvitationData {
 	expiresAt: string;
 }
 
-// export interface Subscription {
-// 	id: string;
-// 	organizationId: string;
-// 	status: string;
-// 	amount: number;
-// 	currency: string;
-// 	recurringInterval: string;
-// 	currentPeriodStart: string;
-// 	currentPeriodEnd: string;
-// 	cancelAtPeriodEnd: boolean;
-// 	canceledAt?: string;
-// 	startedAt: string;
-// 	endsAt?: string;
-// 	endedAt?: string;
-// 	customerId: string;
-// 	productId: string;
-// 	discountId?: string;
-// 	checkoutId: string;
-// 	customerCancellationReason?: string;
-// 	customerCancellationComment?: string;
-// 	metadata?: string;
-// 	customFieldData?: string;
-// 	createdAt: string;
-// 	modifiedAt?: string;
-// }
+export interface ActivityLogWithDetails {
+	id: string;
+	userId: string;
+	noteId: string;
+	actionType: string;
+	ipAddress?: string;
+	createdAt: Date;
+	user: {
+		id: string;
+		name: string;
+		email: string;
+	};
+	note: {
+		id: string;
+		title: string;
+	};
+}

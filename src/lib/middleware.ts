@@ -13,8 +13,8 @@ export async function withAuth(
 	handler: (
 		request: NextRequest,
 		user: AuthUser,
-		session: Session
-	) => Promise<NextResponse>
+		session: Session,
+	) => Promise<NextResponse>,
 ) {
 	try {
 		const session = await auth.api.getSession({
@@ -24,7 +24,7 @@ export async function withAuth(
 		if (!session) {
 			return NextResponse.json(
 				{ error: "Unauthorized - Please login" },
-				{ status: 401 }
+				{ status: 401 },
 			);
 		}
 
@@ -43,7 +43,7 @@ export async function withAuth(
 		if (!user) {
 			return NextResponse.json(
 				{ error: "User not found" },
-				{ status: 404 }
+				{ status: 404 },
 			);
 		}
 		// Get active organization from session or default to first membership
@@ -55,13 +55,14 @@ export async function withAuth(
 		if (!activeMembership) {
 			return NextResponse.json(
 				{ error: "No organization membership found" },
-				{ status: 403 }
+				{ status: 403 },
 			);
 		}
 
 		const userContext = {
 			...session.user,
 			organizationId: activeOrgId || activeMembership.organizationId,
+			role: activeMembership.role,
 		};
 
 		return await handler(request, userContext, session.session);
@@ -69,7 +70,7 @@ export async function withAuth(
 		console.error("Auth middleware error:", error);
 		return NextResponse.json(
 			{ error: "Authentication failed" },
-			{ status: 401 }
+			{ status: 401 },
 		);
 	}
 }
@@ -78,15 +79,15 @@ export async function withAdminAuth(
 	request: NextRequest,
 	handler: (
 		request: NextRequest,
-		user: User,
-		session: Session
-	) => Promise<NextResponse>
+		user: AuthUser,
+		session: Session,
+	) => Promise<NextResponse>,
 ) {
 	return withAuth(request, async (request, user, session) => {
 		if (user.role !== "admin") {
 			return NextResponse.json(
 				{ error: "Forbidden - Admin access required" },
-				{ status: 403 }
+				{ status: 403 },
 			);
 		}
 		return await handler(request, user, session);
