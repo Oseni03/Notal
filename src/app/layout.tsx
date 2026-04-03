@@ -7,38 +7,38 @@ import { OrganizationStoreProvider } from "@/zustand/providers/organization-stor
 import { NoteStoreProvider } from "@/zustand/providers/notes-store-provider";
 
 const geistSans = Geist({
-	variable: "--font-geist-sans",
-	subsets: ["latin"],
+    variable: "--font-geist-sans",
+    subsets: ["latin"],
 });
 
 const geistMono = Geist_Mono({
-	variable: "--font-geist-mono",
-	subsets: ["latin"],
+    variable: "--font-geist-mono",
+    subsets: ["latin"],
 });
 
 export const metadata: Metadata = {
-	title: "Notal",
-	description:
-		"The enterprise-ready multi-tenant note-taking platform with soft deletes, activity logs, and version history.",
+    title: "Notall",
+    description:
+        "The enterprise-ready multi-tenant note-taking platform with soft deletes, activity logs, and version history.",
 };
 
 export default function RootLayout({
-	children,
+    children,
 }: Readonly<{
-	children: React.ReactNode;
+    children: React.ReactNode;
 }>) {
-	return (
-		<html lang="en" suppressHydrationWarning>
-			<body
-				className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-			>
-				<ThemeProvider>
-					<OrganizationStoreProvider>
-						<NoteStoreProvider>{children}</NoteStoreProvider>
-					</OrganizationStoreProvider>
-					<Toaster />
-				</ThemeProvider>
-			</body>
-		</html>
-	);
+    return (
+        <html lang="en" suppressHydrationWarning>
+            <body
+                className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+            >
+                <ThemeProvider>
+                    <OrganizationStoreProvider>
+                        <NoteStoreProvider>{children}</NoteStoreProvider>
+                    </OrganizationStoreProvider>
+                    <Toaster />
+                </ThemeProvider>
+            </body>
+        </html>
+    );
 }

@@ -6,6 +6,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import {
+	AlertDialog,
+	AlertDialogAction,
+	AlertDialogCancel,
+	AlertDialogContent,
+	AlertDialogDescription,
+	AlertDialogFooter,
+	AlertDialogHeader,
+	AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Plus, Search, Edit, Trash2, Tag, Calendar, User } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
@@ -24,6 +34,7 @@ const Page = () => {
 	);
 	const { data: session } = authClient.useSession();
 	const [searchTerm, setSearchTerm] = useState("");
+	const [noteToDelete, setNoteToDelete] = useState<string | null>(null);
 
 	const user = session?.user;
 
@@ -48,13 +59,16 @@ const Page = () => {
 		}
 	}, [activeOrganization, setNotes]);
 
-	const handleDeleteNote = async (noteId: string) => {
+	const handleDeleteNote = async () => {
+		if (!noteToDelete) return;
 		try {
-			await deleteNote(noteId);
+			await deleteNote(noteToDelete);
 			toast.success("Note deleted successfully");
 		} catch (error) {
 			console.error("Error deleting note:", error);
 			toast.error("Error deleting note");
+		} finally {
+			setNoteToDelete(null);
 		}
 	};
 
@@ -66,7 +80,6 @@ const Page = () => {
 		return tenantNotes.length >= (subscription?.maxNotes || 50);
 	};
 
-	// Try to extract a plain-text preview from BlockNote JSON content
 	const getContentPreview = (content: string): string => {
 		try {
 			const blocks = JSON.parse(content);
@@ -88,7 +101,6 @@ const Page = () => {
 		}
 	};
 
-	// Show loading state
 	if (isLoading) {
 		return (
 			<div className="p-6 space-y-6">
@@ -112,7 +124,6 @@ const Page = () => {
 		);
 	}
 
-	// Show error state
 	if (error) {
 		return (
 			<div className="p-6 space-y-6">
@@ -130,6 +141,31 @@ const Page = () => {
 
 	return (
 		<div className="p-6 space-y-6">
+			{/* Delete Confirmation Dialog */}
+			<AlertDialog
+				open={!!noteToDelete}
+				onOpenChange={(open) => !open && setNoteToDelete(null)}
+			>
+				<AlertDialogContent>
+					<AlertDialogHeader>
+						<AlertDialogTitle>Delete Note</AlertDialogTitle>
+						<AlertDialogDescription>
+							Are you sure you want to delete this note? This
+							action cannot be undone.
+						</AlertDialogDescription>
+					</AlertDialogHeader>
+					<AlertDialogFooter>
+						<AlertDialogCancel>Cancel</AlertDialogCancel>
+						<AlertDialogAction
+							onClick={handleDeleteNote}
+							className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+						>
+							Delete
+						</AlertDialogAction>
+					</AlertDialogFooter>
+				</AlertDialogContent>
+			</AlertDialog>
+
 			{/* Header */}
 			<div className="flex items-center justify-between">
 				<div>
@@ -201,7 +237,7 @@ const Page = () => {
 											size="sm"
 											onClick={(e) => {
 												e.stopPropagation();
-												handleDeleteNote(note.id);
+												setNoteToDelete(note.id);
 											}}
 											className="h-8 w-8 p-0 text-destructive hover:text-destructive"
 										>

@@ -39,29 +39,25 @@ const ACTION_COLORS: Record<string, string> = {
 
 export default function ActivityLogsPage() {
 	const { isAdmin } = useOrganizationStore((state) => state);
-	const {
-		activityLogs: logs,
-		activityLogsTotal: total,
-		activityLogsIsLoading: isLoading,
-		activityLogsError: error,
-		fetchActivityLogs: fetchLogs,
-	} = useNoteStore((state) => ({
-		activityLogs: state.activityLogs,
-		activityLogsTotal: state.activityLogsTotal,
-		activityLogsIsLoading: state.activityLogsIsLoading,
-		activityLogsError: state.activityLogsError,
-		fetchActivityLogs: state.fetchActivityLogs,
-	}));
+	const logs = useNoteStore((state) => state.activityLogs);
+	const total = useNoteStore((state) => state.activityLogsTotal);
+	const error = useNoteStore((state) => state.activityLogsError);
+	const isLoading = useNoteStore((state) => state.activityLogsIsLoading);
+	const fetchLogs = useNoteStore((state) => state.fetchActivityLogs);
 
 	// Filter states
-	const [actionFilter, setActionFilter] = useState<string>("");
+	const [actionFilter, setActionFilter] = useState<string>("all");
 	const [currentPage, setCurrentPage] = useState(0);
 	const limit = 10;
 	const offset = currentPage * limit;
 
 	useEffect(() => {
 		if (isAdmin) {
-			fetchLogs({ actionType: actionFilter, limit, offset });
+			fetchLogs({
+				actionType: actionFilter === "all" ? "" : actionFilter,
+				limit,
+				offset,
+			});
 		}
 	}, [isAdmin, fetchLogs, actionFilter, offset, limit]);
 
@@ -126,7 +122,7 @@ export default function ActivityLogsPage() {
 									<SelectValue placeholder="Filter by action..." />
 								</SelectTrigger>
 								<SelectContent>
-									<SelectItem value="">
+									<SelectItem value="all">
 										All Actions
 									</SelectItem>
 									<SelectItem value="Created">
@@ -147,7 +143,7 @@ export default function ActivityLogsPage() {
 						<Button
 							onClick={() => {
 								setCurrentPage(0);
-								setActionFilter("");
+								setActionFilter("all");
 								fetchLogs({ limit, offset: 0 });
 							}}
 							variant="outline"

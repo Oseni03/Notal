@@ -15,7 +15,7 @@ import { toast } from "sonner";
 import { authClient } from "@/lib/auth-client";
 import { useNoteStore } from "@/zustand/providers/notes-store-provider";
 import { useOrganizationStore } from "@/zustand/providers/organization-store-provider";
-import { Note, NoteVersion } from "@/types";
+import { Note } from "@/types";
 import VersionTimelineSidebar from "@/components/editor/version-timeline-sidebar";
 
 // Dynamically import BlockNote to avoid SSR issues
@@ -110,27 +110,6 @@ export default function BaseEditor({
 			// For new notes, no initial blocks
 			setInitialBlocks([]);
 		}
-	}, [note]);
-
-	useEffect(() => {
-		if (!note) {
-			return;
-		}
-
-		const fetchVersions = async () => {
-			try {
-				const res = await fetch(`/api/notes/${note.id}/versions`);
-				if (!res.ok) {
-					throw new Error("Failed to fetch versions");
-				}
-				const data = await res.json();
-				setNoteVersions(data.versions || []);
-			} catch (error) {
-				console.error("Fetch note versions error:", error);
-			}
-		};
-
-		fetchVersions();
 	}, [note]);
 
 	const handleEditorChange = useCallback((newBlocks: Block[]) => {
@@ -370,8 +349,6 @@ export default function BaseEditor({
 					{note && (
 						<VersionTimelineSidebar
 							noteId={note.id}
-							activeOrganizationId={activeOrganization?.id ?? ""}
-							noteOwnerId={note.authorId}
 							onRestore={async (version, fullContent) => {
 								setNoteTitle(version.title);
 								setBlocks(JSON.parse(fullContent || "[]"));

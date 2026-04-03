@@ -1,10 +1,10 @@
-# Notal
+# Notall
 
 A multi-tenant SaaS notes application built with Next.js, demonstrating enterprise-grade multi-tenancy, authentication, and subscription management patterns.
 
 ## Overview
 
-Notal is a production-ready multi-tenant application where multiple organizations (tenants) can securely manage their users and notes with complete data isolation. Built as a Next.js SaaS boilerplate with role-based access control and subscription feature gating.
+Notall is a production-ready multi-tenant application where multiple organizations (tenants) can securely manage their users and notes with complete data isolation. Built as a Next.js SaaS boilerplate with role-based access control and subscription feature gating.
 
 ---
 
@@ -63,7 +63,7 @@ Notal is a production-ready multi-tenant application where multiple organization
 
 ```bash
 git clone <repository-url>
-cd notal
+cd notall
 ```
 
 2. Install dependencies:
@@ -120,7 +120,7 @@ Visit `http://localhost:3000` to access the application.
 ## 📂 Project Structure
 
 ```
-notal/
+notall/
 ├── prisma/
 │   └── schema.prisma         # Database schema
 ├── public/                   # Static assets

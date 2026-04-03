@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import {
 	Dialog,
 	DialogContent,
+	DialogDescription,
 	DialogFooter,
 	DialogHeader,
 	DialogTitle,
@@ -25,23 +26,14 @@ export default function VersionTimelineSidebar({
 	noteId,
 	onRestore,
 }: VersionTimelineSidebarProps) {
-	const {
-		noteVersions,
-		selectedVersion,
-		versionLoading,
-		versionError,
-		fetchNoteVersions,
-		fetchNoteVersion,
-		restoreNoteVersion,
-	} = useNoteStore((state) => ({
-		noteVersions: state.noteVersions,
-		selectedVersion: state.selectedVersion,
-		versionLoading: state.versionLoading,
-		versionError: state.versionError,
-		fetchNoteVersions: state.fetchNoteVersions,
-		fetchNoteVersion: state.fetchNoteVersion,
-		restoreNoteVersion: state.restoreNoteVersion,
-	}));
+	const noteVersions = useNoteStore((state) => state.noteVersions);
+	const selectedVersion = useNoteStore((state) => state.selectedVersion);
+	const versionLoading = useNoteStore((state) => state.versionLoading);
+	const fetchNoteVersions = useNoteStore((state) => state.fetchNoteVersions);
+	const fetchNoteVersion = useNoteStore((state) => state.fetchNoteVersion);
+	const restoreNoteVersion = useNoteStore(
+		(state) => state.restoreNoteVersion,
+	);
 
 	const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -78,26 +70,6 @@ export default function VersionTimelineSidebar({
 		}
 		setIsModalOpen(false);
 		toast.success("Restored version and saved.");
-	};
-
-	const restoreVersion = async () => {
-		if (!selectedVersion) return;
-		const res = await fetch(
-			`/api/notes/${noteId}/versions/${selectedVersion.id}`,
-			{
-				method: "POST",
-			},
-		);
-		if (!res.ok) {
-			toast.error("Failed to restore version");
-			return;
-		}
-		toast.success("Version restored. Refreshing editor...");
-		if (onRestore) {
-			onRestore(selectedVersion, selectedFullContent);
-		}
-		// Optionally, reload to show latest note content
-		window.location.reload();
 	};
 
 	return (

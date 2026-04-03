@@ -12,14 +12,12 @@ import {
 import { authClient } from "@/lib/auth-client";
 import { useOrganizationStore } from "@/zustand/providers/organization-store-provider";
 import { Member, Organization } from "@/types";
-import { useRouter } from "next/navigation";
 
 export default function Page({
 	children,
 }: Readonly<{
 	children: React.ReactNode;
 }>) {
-	const router = useRouter();
 	const {
 		setAdmin,
 		setOrganizations,
@@ -77,12 +75,6 @@ export default function Page({
 		setActiveOrganization,
 		updateSubscription,
 	]);
-
-	useEffect(() => {
-		if (session !== undefined && !session?.user?.id) {
-			router.push("/login");
-		}
-	}, [session, router]);
 
 	if (!session?.user?.id) {
 		return null; // Wait for auth resolution or redirect

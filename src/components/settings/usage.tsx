@@ -1,15 +1,15 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Users } from "lucide-react";
 import { Progress } from "../ui/progress";
-import { Note } from "@/types";
 import { useOrganizationStore } from "@/zustand/providers/organization-store-provider";
+import { useNoteStore } from "@/zustand/providers/notes-store-provider";
 
 export const UsageCard = () => {
 	const { subscription, members } = useOrganizationStore((state) => state);
-	const [notes, setNotes] = useState<Note[]>([]);
+	const notes = useNoteStore((state) => state.notes);
 
 	const maxNotes = subscription?.maxNotes
 		? subscription?.maxNotes == 1
@@ -25,22 +25,6 @@ export const UsageCard = () => {
 
 	const membersCount = members.length;
 
-	useEffect(() => {
-		const getNotes = async () => {
-			try {
-				const resp = await fetch("/api/notes");
-				if (!resp.ok) {
-					throw new Error("Error getting notes");
-				}
-				const { notes } = await resp.json();
-				setNotes(notes);
-			} catch (error: unknown) {
-				console.log("Error getting notes", error);
-			}
-		};
-
-		getNotes();
-	}, []);
 	return (
 		<Card>
 			<CardHeader>

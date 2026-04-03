@@ -35,14 +35,12 @@ export function NavUser() {
 
 	const handleSignOut = async () => {
 		try {
-			toast.loading("Signing out");
+			toast.info("Signing out");
 			authClient.signOut();
-			toast.dismiss();
 			toast.success("Signed out");
 			router.push("/");
 		} catch (error) {
 			console.log("Error signing out: ", error);
-			toast.dismiss();
 			toast.error("Error signing out");
 		}
 	};
@@ -127,7 +125,7 @@ export function NavUser() {
 							<DropdownMenuItem
 								onClick={() =>
 									router.push(
-										"/dashboard/settings?tab=subscription"
+										"/dashboard/settings?tab=subscription",
 									)
 								}
 							>

@@ -95,7 +95,7 @@ export const auth = betterAuth({
 			async sendInvitationEmail(data) {
 				const { success, error } = await sendEmail({
 					to: data.email,
-					subject: `Invitation to join ${data.organization.name} on Notal`,
+					subject: `Invitation to join ${data.organization.name} on Notall`,
 					react: OrganizationInvitationEmail({
 						organizationName: data.organization.name,
 						inviterName: data.inviter.user.name || "Someone",

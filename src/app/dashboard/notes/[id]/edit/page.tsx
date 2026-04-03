@@ -19,10 +19,8 @@ export default function EditNotePage() {
 		const fetchNote = async () => {
 			if (!params.id) return;
 			try {
-				const res = await fetch(`/api/notes/${params.id}`);
-				if (!res.ok) throw new Error("Note not found");
-				const { note: fetchedNote } = await res.json();
-				setNote(fetchedNote);
+				const note = await getNote(params.id);
+				if (note) setNote(note);
 			} catch {
 				toast.error("Failed to load note.");
 				router.push("/dashboard");
@@ -32,7 +30,7 @@ export default function EditNotePage() {
 		};
 
 		fetchNote();
-	}, [params.id, router]);
+	}, [getNote, params.id, router]);
 
 	if (isLoading) {
 		return (
