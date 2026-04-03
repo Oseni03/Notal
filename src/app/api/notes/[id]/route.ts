@@ -1,12 +1,16 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { withAuth } from "@/lib/middleware";
 import { prisma } from "@/lib/prisma";
-import { createActivityLog, getLastActivityForNote } from "@/server/activity-logs";
+import {
+	createActivityLog,
+	getLastActivityForNote,
+} from "@/server/activity-logs";
+import { createNoteVersion } from "@/server/versions";
 
 // GET /api/notes/[id] - Get a specific note
 export async function GET(
 	request: NextRequest,
-	{ params }: { params: Promise<{ id: string }> }
+	{ params }: { params: Promise<{ id: string }> },
 ) {
 	return withAuth(request, async (request, currentUser) => {
 		try {
@@ -31,7 +35,7 @@ export async function GET(
 			if (!note) {
 				return NextResponse.json(
 					{ error: "Note not found" },
-					{ status: 404 }
+					{ status: 404 },
 				);
 			}
 
@@ -42,7 +46,7 @@ export async function GET(
 			) {
 				return NextResponse.json(
 					{ error: "Access denied" },
-					{ status: 403 }
+					{ status: 403 },
 				);
 			}
 
@@ -52,7 +56,7 @@ export async function GET(
 			console.error("Get note error:", error);
 			return NextResponse.json(
 				{ error: "Internal server error" },
-				{ status: 500 }
+				{ status: 500 },
 			);
 		}
 	});
@@ -61,7 +65,7 @@ export async function GET(
 // PUT /api/notes/[id] - Update a specific note
 export async function PUT(
 	request: NextRequest,
-	{ params }: { params: Promise<{ id: string }> }
+	{ params }: { params: Promise<{ id: string }> },
 ) {
 	return withAuth(request, async (request, currentUser) => {
 		try {
@@ -72,7 +76,7 @@ export async function PUT(
 			if (!title || !content) {
 				return NextResponse.json(
 					{ error: "Title and content are required" },
-					{ status: 400 }
+					{ status: 400 },
 				);
 			}
 
@@ -86,7 +90,7 @@ export async function PUT(
 			if (!existingNote) {
 				return NextResponse.json(
 					{ error: "Note not found" },
-					{ status: 404 }
+					{ status: 404 },
 				);
 			}
 
@@ -97,7 +101,7 @@ export async function PUT(
 			) {
 				return NextResponse.json(
 					{ error: "Not authorized" },
-					{ status: 401 }
+					{ status: 401 },
 				);
 			}
 
@@ -108,7 +112,7 @@ export async function PUT(
 			) {
 				return NextResponse.json(
 					{ error: "Access denied" },
-					{ status: 403 }
+					{ status: 403 },
 				);
 			}
 
@@ -130,6 +134,15 @@ export async function PUT(
 					},
 				},
 			});
+
+			await createNoteVersion(
+				noteId,
+				currentUser.organizationId,
+				currentUser.id,
+				content,
+				title,
+				tags ?? [],
+			);
 
 			const activityLog = await createActivityLog({
 				noteId,
@@ -155,18 +168,6 @@ export async function PUT(
 						actionType: activityLog.actionType,
 						createdAt: activityLog.createdAt,
 					},
-				}
-					...updatedNote,
-					lastActivity: {
-						id: activityLog.id,
-						user: {
-							id: currentUser.id,
-							name: currentUser.name,
-							email: currentUser.email,
-						},
-						actionType: activityLog.actionType,
-						createdAt: activityLog.createdAt,
-					},
 				},
 				message: "Note updated successfully",
 			});
@@ -174,7 +175,7 @@ export async function PUT(
 			console.error("Update note error:", error);
 			return NextResponse.json(
 				{ error: "Internal server error" },
-				{ status: 500 }
+				{ status: 500 },
 			);
 		}
 	});
@@ -183,7 +184,7 @@ export async function PUT(
 // DELETE /api/notes/[id] - Delete a specific note
 export async function DELETE(
 	request: NextRequest,
-	{ params }: { params: Promise<{ id: string }> }
+	{ params }: { params: Promise<{ id: string }> },
 ) {
 	return withAuth(request, async (request, currentUser) => {
 		try {
@@ -199,7 +200,7 @@ export async function DELETE(
 			if (!existingNote) {
 				return NextResponse.json(
 					{ error: "Note not found" },
-					{ status: 404 }
+					{ status: 404 },
 				);
 			}
 
@@ -210,7 +211,7 @@ export async function DELETE(
 			) {
 				return NextResponse.json(
 					{ error: "Access denied" },
-					{ status: 403 }
+					{ status: 403 },
 				);
 			}
 
@@ -236,7 +237,7 @@ export async function DELETE(
 			console.error("Delete note error:", error);
 			return NextResponse.json(
 				{ error: "Internal server error" },
-				{ status: 500 }
+				{ status: 500 },
 			);
 		}
 	});

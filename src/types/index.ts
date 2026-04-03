@@ -58,6 +58,21 @@ export interface Note {
 	};
 }
 
+export interface NoteVersion {
+	id: string;
+	noteId: string;
+	organizationId: string;
+	authorId: string;
+	versionNumber: number;
+	type: "snapshot" | "diff";
+	content: string;
+	fullContent?: string;
+	title: string;
+	tags: string[];
+	diffBaseId?: string;
+	createdAt: Date;
+}
+
 export interface InvitationData {
 	id: string;
 	email: string;

@@ -1,9 +1,13 @@
-import { Note, ActivityLogWithDetails } from "@/types";
+import { Note, NoteVersion, ActivityLogWithDetails } from "@/types";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
 export type NoteState = {
 	notes: Note[];
+	noteVersions: NoteVersion[];
+	selectedVersion: NoteVersion | null;
+	versionLoading: boolean;
+	versionError: string | null;
 	activityLogs: ActivityLogWithDetails[];
 	activityLogsTotal: number;
 	activityLogsLimit: number;
@@ -35,6 +39,9 @@ type NoteActions = {
 		},
 	) => Promise<void>;
 	deleteNote: (noteId: string) => Promise<void>;
+	fetchNoteVersions: (noteId: string) => Promise<void>;
+	fetchNoteVersion: (noteId: string, versionId: string) => Promise<void>;
+	restoreNoteVersion: (noteId: string, versionId: string) => Promise<void>;
 	setActivityLogs: (logs: ActivityLogWithDetails[]) => void;
 	fetchActivityLogs: (opts?: {
 		limit?: number;
@@ -49,6 +56,10 @@ export type NoteStore = NoteState & NoteActions;
 
 export const defaultInitState: NoteState = {
 	notes: [],
+	noteVersions: [],
+	selectedVersion: null,
+	versionLoading: false,
+	versionError: null,
 	activityLogs: [],
 	activityLogsTotal: 0,
 	activityLogsLimit: 10,
@@ -174,6 +185,83 @@ export const createNoteStore = (initState: NoteState = defaultInitState) => {
 						set({
 							error: (err as Error).message,
 							isLoading: false,
+						});
+					}
+				},
+				fetchNoteVersions: async (noteId: string) => {
+					set({ versionLoading: true, versionError: null });
+					try {
+						const res = await fetch(
+							`/api/notes/${noteId}/versions`,
+						);
+						if (!res.ok) {
+							const errorData = await res.json();
+							throw new Error(
+								errorData.error || "Failed to load versions",
+							);
+						}
+						const { versions } = await res.json();
+						set({ noteVersions: versions, versionLoading: false });
+					} catch (err) {
+						set({
+							versionError: (err as Error).message,
+							versionLoading: false,
+						});
+					}
+				},
+				fetchNoteVersion: async (noteId: string, versionId: string) => {
+					set({ versionLoading: true, versionError: null });
+					try {
+						const res = await fetch(
+							`/api/notes/${noteId}/versions/${versionId}`,
+						);
+						if (!res.ok) {
+							const errorData = await res.json();
+							throw new Error(
+								errorData.error || "Failed to load version",
+							);
+						}
+						const { version } = await res.json();
+						set({
+							selectedVersion: version,
+							versionLoading: false,
+						});
+					} catch (err) {
+						set({
+							versionError: (err as Error).message,
+							versionLoading: false,
+						});
+					}
+				},
+				restoreNoteVersion: async (
+					noteId: string,
+					versionId: string,
+				) => {
+					set({ versionLoading: true, versionError: null });
+					try {
+						const res = await fetch(
+							`/api/notes/${noteId}/versions/${versionId}`,
+							{
+								method: "POST",
+							},
+						);
+						if (!res.ok) {
+							const errorData = await res.json();
+							throw new Error(
+								errorData.error || "Failed to restore version",
+							);
+						}
+						const { restoredNote } = await res.json();
+						set((state) => ({
+							notes: state.notes.map((n) =>
+								n.id === noteId ? restoredNote : n,
+							),
+							versionLoading: false,
+						}));
+					} catch (err) {
+						set({
+							versionError: (err as Error).message,
+							versionLoading: false,
 						});
 					}
 				},

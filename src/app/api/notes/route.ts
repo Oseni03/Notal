@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getOrganizationById } from "@/server/organizations";
 import { getSession, getUserIdFromSession } from "@/lib/auth-utils";
 import { createActivityLog } from "@/server/activity-logs";
+import { createNoteVersion } from "@/server/versions";
 
 // GET /api/notes - List all notes for the authenticated user's organization
 export async function GET(request: NextRequest) {
@@ -170,6 +171,15 @@ export async function POST(request: NextRequest) {
 				},
 			},
 		});
+
+		await createNoteVersion(
+			newNote.id,
+			tenantId,
+			userId,
+			content,
+			title,
+			tags ?? [],
+		);
 
 		const activityLog = await createActivityLog({
 			noteId: newNote.id,

@@ -27,6 +27,7 @@ model User {
   invitations   Invitation[]
   Notes         Note[]
   ActivityLog   ActivityLog[]
+  NoteVersion   NoteVersion[]
 
   @@unique([email])
   @@map("user")
@@ -91,6 +92,7 @@ model Organization {
   Notes           Note[]
   invitations     Invitation[]
   ActivityLog     ActivityLog[]
+  NoteVersion     NoteVersion[]
 
   @@unique([slug])
   @@map("organization")
@@ -136,6 +138,29 @@ model Note {
   author       User          @relation(fields: [authorId], references: [id], onDelete: Cascade)
   organization Organization  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   activityLogs ActivityLog[]
+  versions     NoteVersion[]
+}
+
+model NoteVersion {
+  id             String   @id @default(cuid())
+  noteId         String
+  organizationId String
+  authorId       String
+  versionNumber  Int
+  type           String // "snapshot" or "diff"
+  content        String // snapshot JSON or patch string
+  title          String
+  tags           String[]
+  diffBaseId     String?
+  createdAt      DateTime @default(now())
+
+  note         Note         @relation(fields: [noteId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  author       User         @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@unique([noteId, versionNumber])
+  @@index([noteId])
+  @@index([organizationId])
 }
 
 model ActivityLog {

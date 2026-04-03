@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { formatDistanceToNow } from "date-fns";
 import { Block } from "@blocknote/core";
@@ -15,7 +15,8 @@ import { toast } from "sonner";
 import { authClient } from "@/lib/auth-client";
 import { useNoteStore } from "@/zustand/providers/notes-store-provider";
 import { useOrganizationStore } from "@/zustand/providers/organization-store-provider";
-import { Note } from "@/types";
+import { Note, NoteVersion } from "@/types";
+import VersionTimelineSidebar from "@/components/editor/version-timeline-sidebar";
 
 // Dynamically import BlockNote to avoid SSR issues
 const BlocknoteEditor = dynamic(
@@ -47,8 +48,15 @@ export default function BaseEditor({
 		undefined,
 	);
 	const [tagsInput, setTagsInput] = useState("");
+	const [autoSaveMessage, setAutoSaveMessage] = useState("Saved");
 	const [isPublic, setIsPublic] = useState(true);
 	const [isSaving, setIsSaving] = useState(false);
+	const lastSavedState = useRef({
+		content: "",
+		title: initialTitle,
+		tags: "",
+		isPublic: true,
+	});
 
 	// Initialize state if editing an existing note
 	useEffect(() => {
@@ -56,6 +64,14 @@ export default function BaseEditor({
 			setNoteTitle(note.title);
 			setTagsInput(note.tags.join(", "));
 			setIsPublic(note.isPublic);
+
+			// Set last saved state to prevent immediate duplicate commits
+			lastSavedState.current = {
+				content: note.content,
+				title: note.title,
+				tags: note.tags.join(","),
+				isPublic: note.isPublic,
+			};
 
 			// Try to parse existing content as BlockNote JSON
 			try {
@@ -96,6 +112,27 @@ export default function BaseEditor({
 		}
 	}, [note]);
 
+	useEffect(() => {
+		if (!note) {
+			return;
+		}
+
+		const fetchVersions = async () => {
+			try {
+				const res = await fetch(`/api/notes/${note.id}/versions`);
+				if (!res.ok) {
+					throw new Error("Failed to fetch versions");
+				}
+				const data = await res.json();
+				setNoteVersions(data.versions || []);
+			} catch (error) {
+				console.error("Fetch note versions error:", error);
+			}
+		};
+
+		fetchVersions();
+	}, [note]);
+
 	const handleEditorChange = useCallback((newBlocks: Block[]) => {
 		setBlocks(newBlocks);
 	}, []);
@@ -114,63 +151,92 @@ export default function BaseEditor({
 			})}`
 		: "";
 
-	const handleSave = useCallback(async () => {
-		if (!session?.user || !activeOrganization) {
-			toast.error("You must be logged in to save notes.");
-			return;
-		}
-		if (!noteTitle.trim()) {
-			toast.error("Please add a title before saving.");
-			return;
-		}
-
-		setIsSaving(true);
-		try {
-			// Serialize BlockNote document to JSON string for storage
-			const contentJson = JSON.stringify(blocks);
-
-			const isEditing = !!note;
-
-			if (isEditing && note) {
-				await updateNote(note.id, {
-					title: noteTitle.trim(),
-					content: contentJson,
-					tags: parsedTags,
-					isPublic,
-				});
-				toast.success("Note updated successfully!");
-			} else {
-				await addNote({
-					title: noteTitle.trim(),
-					content: contentJson,
-					authorId: session.user.id,
-					tenantId: activeOrganization.id,
-					tags: parsedTags,
-					isPublic,
-				});
-				toast.success("Note saved successfully!");
+	const handleSave = useCallback(
+		async (options: { silent?: boolean } = {}) => {
+			const { silent = false } = options;
+			if (!session?.user || !activeOrganization) {
+				if (!silent)
+					toast.error("You must be logged in to save notes.");
+				return;
 			}
-		} catch (err: unknown) {
-			const msg =
-				err instanceof Error
-					? err.message
-					: `Error ${note ? "updating" : "saving"} note`;
-			toast.error(msg);
-		} finally {
-			setIsSaving(false);
-		}
-	}, [
-		addNote,
-		activeOrganization,
-		note,
-		noteTitle,
-		isPublic,
-		parsedTags,
-		session,
-		setIsSaving,
-		updateNote,
-		blocks,
-	]);
+			if (!noteTitle.trim()) {
+				if (!silent) toast.error("Please add a title before saving.");
+				return;
+			}
+
+			const contentJson = JSON.stringify(blocks);
+			const tags = parsedTags;
+			const title = noteTitle.trim();
+
+			if (
+				contentJson === lastSavedState.current.content &&
+				title === lastSavedState.current.title &&
+				tags.join(",") === lastSavedState.current.tags &&
+				isPublic === lastSavedState.current.isPublic
+			) {
+				if (!silent) toast.success("No changes to save.");
+				return;
+			}
+
+			setIsSaving(true);
+			try {
+				const isEditing = !!note;
+
+				if (isEditing && note) {
+					await updateNote(note.id, {
+						title,
+						content: contentJson,
+						tags,
+						isPublic,
+					});
+					if (!silent) toast.success("Note updated successfully!");
+				} else {
+					await addNote({
+						title,
+						content: contentJson,
+						authorId: session.user.id,
+						tenantId: activeOrganization.id,
+						tags,
+						isPublic,
+					});
+					if (!silent) toast.success("Note saved successfully!");
+				}
+
+				lastSavedState.current = {
+					content: contentJson,
+					title,
+					tags: tags.join(","),
+					isPublic,
+				};
+				if (!silent) {
+					setAutoSaveMessage("Saved");
+				} else {
+					setAutoSaveMessage("Auto-saved");
+				}
+			} catch (err: unknown) {
+				const msg =
+					err instanceof Error
+						? err.message
+						: `Error ${note ? "updating" : "saving"} note`;
+				if (!silent) toast.error(msg);
+				else setAutoSaveMessage("Auto-save failed");
+			} finally {
+				setIsSaving(false);
+			}
+		},
+		[
+			addNote,
+			activeOrganization,
+			note,
+			noteTitle,
+			isPublic,
+			parsedTags,
+			session,
+			setIsSaving,
+			updateNote,
+			blocks,
+		],
+	);
 
 	useEffect(() => {
 		const onKeyDown = (event: KeyboardEvent) => {
@@ -186,6 +252,14 @@ export default function BaseEditor({
 		window.addEventListener("keydown", onKeyDown);
 		return () => window.removeEventListener("keydown", onKeyDown);
 	}, [handleSave]);
+
+	useEffect(() => {
+		const timer = setTimeout(() => {
+			handleSave({ silent: true });
+		}, 10000);
+
+		return () => clearTimeout(timer);
+	}, [handleSave, noteTitle, blocks, parsedTags, isPublic]);
 
 	return (
 		<div className="flex flex-col h-full min-h-screen bg-background">
@@ -207,8 +281,10 @@ export default function BaseEditor({
 				</div>
 
 				<div className="flex items-center gap-2 text-sm text-muted-foreground/85">
+					<span className="text-xs text-muted-foreground/70">
+						{autoSaveMessage}
+					</span>
 					<Switch
-						id="visibility"
 						checked={isPublic}
 						onCheckedChange={setIsPublic}
 						className="scale-90"
@@ -221,7 +297,7 @@ export default function BaseEditor({
 					</Label>
 
 					<Button
-						onClick={handleSave}
+						onClick={() => handleSave({ silent: false })}
 						disabled={isSaving || !noteTitle.trim()}
 						size="sm"
 						variant="outline"
@@ -237,55 +313,80 @@ export default function BaseEditor({
 				</div>
 			</div>
 
-			<div className="flex-1 w-full max-w-4xl mx-auto px-6 py-8 flex flex-col gap-6">
-				<Input
-					value={noteTitle}
-					onChange={(e) => setNoteTitle(e.target.value)}
-					placeholder="Note title"
-					className="border-0 text-xl md:text-4xl text-muted-foreground placeholder:text-muted-foreground/40 focus-visible:ring-0"
-				/>
+			<div className="flex-1 w-full max-w-6xl mx-auto px-6 py-8">
+				<div className="flex gap-6">
+					<div className="flex-1 flex flex-col gap-6">
+						<Input
+							value={noteTitle}
+							onChange={(e) => setNoteTitle(e.target.value)}
+							placeholder="Note title"
+							className="border-0 text-xl md:text-4xl text-muted-foreground placeholder:text-muted-foreground/40 focus-visible:ring-0"
+						/>
 
-				<Input
-					value={tagsInput}
-					onChange={(e) => setTagsInput(e.target.value)}
-					placeholder="Add tags, separated by commas…"
-					className="border-0 bg-transparent text-sm text-muted-foreground placeholder:text-muted-foreground/40 focus-visible:ring-0 max-w-sm"
-				/>
-				{parsedTags.length > 0 && (
-					<div className="flex gap-1 flex-wrap">
-						{parsedTags.map((tag) => (
-							<Badge
-								key={tag}
-								variant="secondary"
-								className="text-xs"
-							>
-								{tag}
-							</Badge>
-						))}
-					</div>
-				)}
-
-				{lastActivity && (
-					<div className="flex items-center gap-2">
-						<Badge className="text-xs" variant="outline">
-							{lastActivityText}
-						</Badge>
-					</div>
-				)}
-
-				{/* BlockNote Editor */}
-				<div className="flex-1 bg-background overflow-hidden">
-					<div className="p-0 pt-5">
-						{initialBlocks !== undefined ? (
-							<BlocknoteEditor
-								key={note?.id}
-								initialContent={initialBlocks}
-								onChange={handleEditorChange}
-							/>
-						) : (
-							<EditorSkeleton />
+						<Input
+							value={tagsInput}
+							onChange={(e) => setTagsInput(e.target.value)}
+							placeholder="Add tags, separated by commas…"
+							className="border-0 bg-transparent text-sm text-muted-foreground placeholder:text-muted-foreground/40 focus-visible:ring-0 max-w-sm"
+						/>
+						{parsedTags.length > 0 && (
+							<div className="flex gap-1 flex-wrap">
+								{parsedTags.map((tag) => (
+									<Badge
+										key={tag}
+										variant="secondary"
+										className="text-xs"
+									>
+										{tag}
+									</Badge>
+								))}
+							</div>
 						)}
+
+						{lastActivity && (
+							<div className="flex items-center gap-2">
+								<Badge className="text-xs" variant="outline">
+									{lastActivityText}
+								</Badge>
+							</div>
+						)}
+
+						{/* BlockNote Editor */}
+						<div className="flex-1 bg-background overflow-hidden">
+							<div className="p-0 pt-5">
+								{initialBlocks !== undefined ? (
+									<BlocknoteEditor
+										key={note?.id}
+										initialContent={initialBlocks}
+										onChange={handleEditorChange}
+									/>
+								) : (
+									<EditorSkeleton />
+								)}
+							</div>
+						</div>
 					</div>
+
+					{note && (
+						<VersionTimelineSidebar
+							noteId={note.id}
+							activeOrganizationId={activeOrganization?.id ?? ""}
+							noteOwnerId={note.authorId}
+							onRestore={async (version, fullContent) => {
+								setNoteTitle(version.title);
+								setBlocks(JSON.parse(fullContent || "[]"));
+								setTagsInput(version.tags.join(", "));
+								setIsPublic(note.isPublic);
+								lastSavedState.current = {
+									content: fullContent,
+									title: version.title,
+									tags: version.tags.join(","),
+									isPublic: note.isPublic,
+								};
+								setAutoSaveMessage("Loaded version");
+							}} // run through full reload for now
+						/>
+					)}
 				</div>
 			</div>
 		</div>
